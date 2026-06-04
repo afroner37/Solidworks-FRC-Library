@@ -1,0 +1,9 @@
+
+# SolidWorks files
+~$*
+*.sldprt.bak
+*.sldasm.bak
+*.slddrw.bak
+*.sld*.bak
+sldworks_suites.log
+.sw_*
