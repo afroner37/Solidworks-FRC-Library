@@ -1,0 +1,6 @@
+*.sldprt filter=lfs diff=lfs merge=lfs -text lockable
+*.sldasm filter=lfs diff=lfs merge=lfs -text lockable
+*.slddrw filter=lfs diff=lfs merge=lfs -text lockable
+*.SLDPRT filter=lfs diff=lfs merge=lfs -text lockable
+*.SLDASM filter=lfs diff=lfs merge=lfs -text lockable
+*.SLDDRW filter=lfs diff=lfs merge=lfs -text lockable
