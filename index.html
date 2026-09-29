@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vault Files</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1c2026; --muted: #5d6673; --line: #dde1e7;
+  --accent: #1f6feb; --accent-text: #ffffff; --hover: #eef2f8; --thumb-bg: #ffffff;
+  --part: #2f7d4f; --assembly: #8a5a00; --drawing: #5b4bb7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418; --panel: #191d23; --text: #e4e8ee; --muted: #98a2b0; --line: #2b313a;
+    --accent: #4c8dff; --accent-text: #0b0e12; --hover: #212731; --thumb-bg: #ffffff;
+    --part: #5fc58a; --assembly: #e0a93a; --drawing: #a497ff;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+header .meta { color: var(--muted); font-size: 12px; }
+#search { flex: 1 1 220px; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+main { display: grid; grid-template-columns: 240px 1fr; height: calc(100% - 57px); }
+nav { border-right: 1px solid var(--line); overflow: auto; padding: 8px 0; background: var(--panel); }
+nav button { display: block; width: 100%; text-align: left; border: 0; background: none; color: var(--text); font: inherit; padding: 4px 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+nav button:hover { background: var(--hover); }
+nav button.on { background: var(--hover); color: var(--accent); font-weight: 600; }
+nav .count { color: var(--muted); font-weight: normal; margin-left: 4px; }
+#folderSelect { display: none; }
+section#list { overflow: auto; padding: 16px; }
+.crumbs { color: var(--muted); margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; text-align: left; padding: 0; color: inherit; font: inherit; }
+.card:hover, .card:focus-visible { border-color: var(--accent); outline: none; }
+.thumb { aspect-ratio: 4 / 3; background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; }
+.thumb img { width: 100%; height: 100%; object-fit: contain; }
+.thumb .none { color: #8a929e; font-size: 12px; }
+.card .body { padding: 8px 10px; min-width: 0; }
+.name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.badge.part { color: var(--part); } .badge.assembly { color: var(--assembly); } .badge.drawing { color: var(--drawing); }
+.state { display: inline-block; font-size: 11px; border: 1px solid var(--line); border-radius: 10px; padding: 0 6px; margin-left: 6px; color: var(--muted); }
+.empty { color: var(--muted); padding: 32px 0; text-align: center; }
+dialog { border: 1px solid var(--line); border-radius: 10px; padding: 0; background: var(--panel); color: var(--text); width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.dlg-thumb { background: var(--thumb-bg); height: min(42vh, 380px); display: flex; align-items: center; justify-content: center; }
+.dlg-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.dlg-body { padding: 16px; }
+.dlg-body h2 { margin: 0 0 4px; font-size: 18px; word-break: break-word; }
+.dlg-body .path { color: var(--muted); word-break: break-all; margin-bottom: 12px; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0 0 16px; }
+.facts dt { color: var(--muted); } .facts dd { margin: 0; min-width: 0; word-break: break-word; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 600; background: var(--panel); cursor: pointer; font: inherit; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
+a { color: var(--accent); }
+@media (max-width: 700px) {
+  main { grid-template-columns: 1fr; height: auto; }
+  nav { display: none; }
+  #folderSelect { display: block; width: 100%; margin-bottom: 12px; padding: 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Vault files</h1>
+  <input id="search" type="search" placeholder="Search files" aria-label="Search files">
+  <span class="meta" id="meta"></span>
+</header>
+<main>
+  <nav id="tree" aria-label="Folders"></nav>
+  <section id="list">
+    <select id="folderSelect" aria-label="Folder"></select>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+<dialog id="dlg"><div id="dlgContent"></div></dialog>
+<script>
+(function () {
+  var data = null, folder = '', query = '';
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function base(p) { return p.slice(p.lastIndexOf('/') + 1); }
+  function dir(p) { var i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); }
+  function size(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; }
+  function date(s) { return s ? new Date(s).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''; }
+  function encPath(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+
+  function downloadUrl(f) {
+    var host = f.lfs ? 'https://media.githubusercontent.com/media/' : 'https://raw.githubusercontent.com/';
+    return host + data.repo + '/' + encodeURIComponent(data.branch) + '/' + encPath(f.path);
+  }
+  // Handled by the SOLIDWORKS TeamHub add-in, which opens the local clone's copy in eDrawings.
+  function openUrl(f) { return 'swteamhub://open?repo=' + encodeURIComponent(data.repo) + '&path=' + encodeURIComponent(f.path); }
+
+  function folders() {
+    var counts = {};
+    data.files.forEach(function (f) {
+      var d = dir(f.path), parts = d ? d.split('/') : [];
+      counts[''] = (counts[''] || 0) + 1;
+      for (var i = 1; i <= parts.length; i++) { var k = parts.slice(0, i).join('/'); counts[k] = (counts[k] || 0) + 1; }
+    });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b); }).map(function (k) { return { path: k, count: counts[k] }; });
+  }
+
+  function renderTree() {
+    var html = '', opts = '';
+    folders().forEach(function (d) {
+      var depth = d.path ? d.path.split('/').length : 0, label = d.path ? base(d.path) : 'All files';
+      html += '<button data-f="' + esc(d.path) + '" style="padding-left:' + (12 + depth * 14) + 'px"' + (d.path === folder ? ' class="on"' : '') + '>' + esc(label) + '<span class="count">' + d.count + '</span></button>';
+      opts += '<option value="' + esc(d.path) + '"' + (d.path === folder ? ' selected' : '') + '>' + esc(d.path || 'All files') + ' (' + d.count + ')</option>';
+    });
+    $('tree').innerHTML = html;
+    $('folderSelect').innerHTML = opts;
+  }
+
+  function visible() {
+    var q = query.toLowerCase();
+    return data.files.filter(function (f) {
+      if (folder && f.path !== folder && f.path.indexOf(folder + '/') !== 0) return false;
+      if (!q) return true;
+      return (f.path + ' ' + (f.state || '') + ' ' + (f.commit ? f.commit.author + ' ' + f.commit.subject : '')).toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) { return base(a.path).localeCompare(base(b.path)); });
+  }
+
+  function thumbHtml(f) { return f.thumb ? '<img loading="lazy" src="' + esc(f.thumb) + '" alt="">' : '<span class="none">No preview</span>'; }
+
+  function renderGrid() {
+    var list = visible();
+    $('crumbs').textContent = (folder || 'All files') + ' · ' + list.length + ' file' + (list.length === 1 ? '' : 's');
+    $('grid').innerHTML = list.length ? list.map(function (f) {
+      return '<button class="card" data-p="' + esc(f.path) + '"><div class="thumb">' + thumbHtml(f) + '</div><div class="body">' +
+        '<div class="name" title="' + esc(f.path) + '">' + esc(base(f.path)) + '</div>' +
+        '<div class="sub"><span class="badge ' + f.type + '">' + f.type + '</span>' + (f.state ? '<span class="state">' + esc(f.state) + '</span>' : '') + '</div>' +
+        '<div class="sub">' + (f.commit ? esc(f.commit.author) + ' · ' + date(f.commit.date) : '') + '</div></div></button>';
+    }).join('') : '<div class="empty">No files match.</div>';
+  }
+
+  function show(path) {
+    var f = data.files.filter(function (x) { return x.path === path; })[0];
+    if (!f) return;
+    var c = f.commit, repoUrl = 'https://github.com/' + data.repo;
+    $('dlgContent').innerHTML =
+      '<div class="dlg-thumb">' + thumbHtml(f) + '</div><div class="dlg-body">' +
+      '<h2>' + esc(base(f.path)) + '</h2><div class="path">' + esc(f.path) + '</div><dl class="facts">' +
+      '<dt>Type</dt><dd><span class="badge ' + f.type + '">' + f.type + '</span></dd>' +
+      '<dt>Size</dt><dd>' + size(f.size) + '</dd>' +
+      (f.state ? '<dt>State</dt><dd>' + esc(f.state) + '</dd>' : '') +
+      (c ? '<dt>Last change</dt><dd><a href="' + repoUrl + '/commit/' + c.sha + '" target="_blank" rel="noopener">' + c.sha.slice(0, 7) + '</a> ' + esc(c.subject) + '<br>' + esc(c.author) + ', ' + date(c.date) + '</dd>' : '') +
+      '<dt>History</dt><dd><a href="' + repoUrl + '/commits/' + encodeURIComponent(data.branch) + '/' + encPath(f.path) + '" target="_blank" rel="noopener">View on GitHub</a></dd>' +
+      '</dl><div class="actions"><a class="btn primary" href="' + esc(openUrl(f)) + '">Open in eDrawings</a>' +
+      '<a class="btn" href="' + esc(downloadUrl(f)) + '" download>Download</a>' +
+      '<button class="btn" id="dlgClose">Close</button></div>' +
+      '<div class="hint">Open in eDrawings uses your local clone and needs the SOLIDWORKS TeamHub add-in.' +
+      (f.type !== 'part' ? ' A downloaded ' + f.type + ' opens without the files it references.' : '') + '</div></div>';
+    $('dlgClose').onclick = function () { $('dlg').close(); };
+    if (!$('dlg').open) $('dlg').showModal();
+    history.replaceState(null, '', '#' + encodeURIComponent(path));
+  }
+
+  function setFolder(f) { folder = f; renderTree(); renderGrid(); }
+
+  $('tree').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) setFolder(b.getAttribute('data-f')); });
+  $('folderSelect').addEventListener('change', function (e) { setFolder(e.target.value); });
+  $('grid').addEventListener('click', function (e) { var b = e.target.closest('.card'); if (b) show(b.getAttribute('data-p')); });
+  $('search').addEventListener('input', function (e) { query = e.target.value; renderGrid(); });
+  $('dlg').addEventListener('close', function () { history.replaceState(null, '', location.pathname); });
+  $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
+
+  fetch('manifest.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (m) {
+    data = m;
+    var name = (m.repo || '').split('/').pop() || 'Vault';
+    document.title = name + ' files';
+    $('title').textContent = name;
+    $('meta').textContent = m.files.length + ' files · ' + m.branch + ' @ ' + m.commit.slice(0, 7) + ' · built ' + date(m.generated);
+    renderTree(); renderGrid();
+    if (location.hash.length > 1) show(decodeURIComponent(location.hash.slice(1)));
+  }).catch(function (err) {
+    $('grid').innerHTML = '<div class="empty">Could not load manifest.json: ' + esc(err.message) + '</div>';
+  });
+})();
+</script>
+</body>
+</html>
