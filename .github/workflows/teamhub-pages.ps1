@@ -179,7 +179,7 @@ function Build-Site {
     # Tracked CAD files at HEAD.
     $entries = @()
     foreach ($line in (Invoke-Git $vault ls-tree -r HEAD)) {
-        $tab = $line.IndexOf("`t")
+        $tab = $line.IndexOf([char]9)   # char overload: ordinal on every platform
         $meta = $line.Substring(0, $tab).Split(' ')
         $path = $line.Substring($tab + 1)
         if ($meta[1] -ne 'blob' -or $path -notmatch $CadPattern) { continue }
@@ -191,7 +191,9 @@ function Build-Site {
     $lastCommit = @{}
     $current = $null
     foreach ($line in (Invoke-Git $vault log --format=%x01%H%x1f%an%x1f%aI%x1f%s --name-only HEAD)) {
-        if ($line.StartsWith([string][char]1)) {
+        # A char test, not StartsWith: on Linux .NET compares strings through
+        # ICU, which ignores \x01 and so matches every line, blank ones too.
+        if ($line.Length -gt 0 -and $line[0] -eq [char]1) {
             $p = $line.Substring(1).Split([char]0x1f)
             $current = [ordered]@{ sha = $p[0]; author = $p[1]; date = $p[2]; subject = $p[3] }
         } elseif ($line -and $current -and -not $lastCommit.ContainsKey($line)) {
