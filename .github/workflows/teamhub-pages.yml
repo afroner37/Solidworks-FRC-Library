@@ -1,0 +1,63 @@
+# TeamHub file browser on GitHub Pages — Tier A (no SolidWorks licence needed)
+#
+# COPY THIS INTO YOUR **VAULT** REPOSITORY at .github/workflows/teamhub-pages.yml,
+# together with teamhub-pages.ps1 and teamhub-pages-index.html (same folder).
+#
+# On every push it rebuilds a static site on the gh-pages branch: a thumbnail
+# per SolidWorks file (the preview SolidWorks embeds in the file itself), with
+# folders, search, last change and workflow state, plus "Open in eDrawings"
+# (local clone, via the add-in) and "Download" buttons.
+#
+# Then, once: Settings > Pages > Build and deployment > Deploy from a branch >
+# gh-pages / (root). The site is public for a public repo.
+
+name: TeamHub file browser
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # push the gh-pages branch
+
+concurrency:
+  group: teamhub-pages
+  cancel-in-progress: false
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the vault
+        uses: actions/checkout@v4
+        with:
+          # Full history for each file's last change.
+          fetch-depth: 0
+          # The builder downloads only the files whose thumbnail it does not
+          # already have, instead of every LFS object on every push.
+          lfs: false
+
+      - name: Check out gh-pages
+        run: |
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null; then
+            git fetch --depth 1 origin gh-pages
+            git worktree add _site FETCH_HEAD
+            git -C _site checkout -B gh-pages
+          else
+            git worktree add --orphan -b gh-pages _site
+          fi
+
+      - name: Build the site
+        shell: pwsh
+        env:
+          # Comma-separated path globs to leave out. Default: the Trash folder.
+          PAGES_EXCLUDE: ${{ vars.PAGES_EXCLUDE || 'Trash/*' }}
+        run: |
+          ./.github/workflows/teamhub-pages.ps1 -SiteDir _site -Branch '${{ github.ref_name }}' `
+            -Exclude ($env:PAGES_EXCLUDE -split ',' | ForEach-Object { $_.Trim() }) -Commit
+
+      - name: Publish
+        run: git -C _site push origin gh-pages
